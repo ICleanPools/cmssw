@@ -6,6 +6,7 @@
 L1TdeStage2EMTF::L1TdeStage2EMTF(const edm::ParameterSet& ps)
     : dataToken(consumes<l1t::RegionalMuonCandBxCollection>(ps.getParameter<edm::InputTag>("dataSource"))),
       emulToken(consumes<l1t::RegionalMuonCandBxCollection>(ps.getParameter<edm::InputTag>("emulSource"))),
+      hitToken(consumes<l1t::EMTFHitCollection>(ps.getParameter<edm::InputTag>("hitSource"))),
       monitorDir(ps.getUntrackedParameter<std::string>("monitorDir", "")),
       verbose(ps.getUntrackedParameter<bool>("verbose", false)) {}
 
@@ -69,6 +70,48 @@ void L1TdeStage2EMTF::bookHistograms(DQMStore::IBooker& ibooker, const edm::Run&
     emtfEmulhwQual->setBinLabel(bin, std::to_string(bin - 1), 1);
   }
 
+// RPC Histograms - Added by Preston
+
+  std::vector<std::string> suffix = {"4/2","3/2","2/2","1/3","1/2"};
+
+  emtfRPCHitBX = ibooker.book2D("emtfRPCHitBX", "EMTF RPC Hit BX", 7, -3, 4, 10, 0, 10);
+  emtfRPCHitBX->setAxisTitle("BX",1);
+  for (int xbin = 1; xbin < 8; ++xbin)
+    emtfRPCHitBX->setBinLabel(xbin, std::to_string(xbin-4), 1);
+  for (int ybin = 1; ybin < 6; ++ybin) {
+    emtfRPCHitBX->setBinLabel(ybin, "RE-" + suffix[ybin - 1],2);
+    emtfRPCHitBX->setBinLabel(11 - ybin, "RE+" + suffix[ybin - 1],2);
+  }
+
+  emtfRPCBX = ibooker.book1D("emtfRPCBX", "EMTF RPC BX", 7, -3, 4);
+  emtfRPCBX->setAxisTitle("BX",1);
+  for (int bin = 1; bin < 8; ++bin)
+    emtfRPCBX->setBinLabel(bin, std::to_string(bin-4), 1);
+
+  emtfRPCSectorP = ibooker.book1D("emtfRPCSectorP", "Positive Endcap RPC Sector", 6, 1, 7);
+  emtfRPCSectorP->setAxisTitle("Sector", 1);
+  for (int bin = 1; bin < 7; ++bin)
+    emtfRPCSectorP->setBinLabel(bin, std::to_string(bin), 1);
+
+  emtfRPCSectorN = ibooker.book1D("emtfRPCSectorN", "Negative Endcap RPC Sector", 6, 1, 7);
+  emtfRPCSectorN->setAxisTitle("Sector", 1);
+  for (int bin = 1; bin < 7; ++bin)
+    emtfRPCSectorN->setBinLabel(bin, std::to_string(bin), 1);
+
+  emtfRPCSSSP = ibooker.book1D("emtfRPCSSSP", "Positive Endcap RPC Sector and Subsector", 36, 7, 43);
+  emtfRPCSSSP->setAxisTitle("Sector/Subsector", 1);
+  for (int sect = 1; sect < 7; ++sect) {
+    emtfRPCSSSP->setBinLabel(6*(sect-1)+1, std::to_string(sect) + "/1", 1);
+    emtfRPCSSSP->setBinLabel(6*(sect-1)+4, std::to_string(sect) + "/4", 1);
+  }
+
+  emtfRPCSSSN = ibooker.book1D("emtfRPCSSSN", "Negative Endcap RPC Sector and Subsector", 36, 7, 43);
+  emtfRPCSSSN->setAxisTitle("Sector/Subsector", 1);
+  for (int sect = 1; sect < 7; ++sect) {
+    emtfRPCSSSN->setBinLabel(6*(sect-1)+1, std::to_string(sect) + "/1", 1);
+    emtfRPCSSSN->setBinLabel(6*(sect-1)+4, std::to_string(sect) + "/4", 1);
+  }
+
   // Comparison plots reserved for updated emulator.
   /*emtfComparehwPt = ibooker.book2D("emtfComparehwPt", "EMTF Muon Cand p_{T}", 512, 0, 512, 512, 0, 512);
   emtfComparehwPt->setAxisTitle("Hardware p_{T}", 1);
@@ -121,6 +164,43 @@ void L1TdeStage2EMTF::analyze(const edm::Event& e, const edm::EventSetup& c) {
       emtfEmulhwEta->Fill(emulMuon->hwEta());
       emtfEmulhwPhi->Fill(emulMuon->hwPhi());
       emtfEmulhwQual->Fill(emulMuon->hwQual());
+    }
+  }
+
+// RPC Histograms - Added by Preston
+
+  edm::Handle<l1t::EMTFHitCollection> HitCollection;
+  e.getByToken(hitToken, HitCollection);
+
+  for (std::vector<l1t::EMTFHit>::const_iterator Hit = HitCollection->begin(); Hit != HitCollection->end(); ++Hit) {
+    int station = Hit->Station();
+    int ring = Hit->Ring();
+
+    int hist_index = 0;
+
+    switch (station) {
+      case 1: switch (ring) {
+        case 2: hist_index = 4; break;
+        case 3: hist_index = 3; break;
+      } break;
+      case 2: hist_index = 2; break;
+      case 3: hist_index = 1; break;
+      case 4: hist_index = 0; break;
+    }
+
+    if (Hit->Is_RPC()){
+      if (Hit->Endcap() > 0){
+        hist_index = 9 - hist_index;
+        emtfRPCSectorP->Fill(Hit->Sector());
+        emtfRPCSSSP->Fill(6*Hit->Sector() + Hit->Subsector());
+      } else {
+        emtfRPCSectorN->Fill(Hit->Sector());
+        emtfRPCSSSN->Fill(6*Hit->Sector() + Hit->Subsector());
+      }
+      if (Hit->BC0()){
+        emtfRPCHitBX->Fill(Hit->BX(), hist_index);
+        emtfRPCBX->Fill(Hit->BX());
+      }
     }
   }
 }

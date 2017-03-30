@@ -9,7 +9,7 @@
 #include "DQMServices/Core/interface/MonitorElement.h"
 
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
-
+#include "DataFormats/L1TMuon/interface/EMTFHit.h"
 
 class L1TdeStage2EMTF : public DQMEDAnalyzer {
 
@@ -29,6 +29,7 @@ class L1TdeStage2EMTF : public DQMEDAnalyzer {
 
   edm::EDGetTokenT<l1t::RegionalMuonCandBxCollection> dataToken;
   edm::EDGetTokenT<l1t::RegionalMuonCandBxCollection> emulToken;
+  edm::EDGetTokenT<l1t::EMTFHitCollection> hitToken;
   std::string monitorDir;
   bool verbose;
 
@@ -44,6 +45,15 @@ class L1TdeStage2EMTF : public DQMEDAnalyzer {
   MonitorElement* emtfEmulhwPhi;
   MonitorElement* emtfDatahwQual;
   MonitorElement* emtfEmulhwQual;
+
+// RPC Histograms - Added by Preston
+
+  MonitorElement* emtfRPCHitBX;
+  MonitorElement* emtfRPCBX;
+  MonitorElement* emtfRPCSectorP;
+  MonitorElement* emtfRPCSectorN;
+  MonitorElement* emtfRPCSSSP;
+  MonitorElement* emtfRPCSSSN;
 
   /*MonitorElement* emtfComparehwPt;
   MonitorElement* emtfComparehwEta;

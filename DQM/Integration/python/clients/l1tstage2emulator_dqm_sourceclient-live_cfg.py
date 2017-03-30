@@ -7,22 +7,25 @@ process = cms.Process("L1TStage2EmulatorDQM", eras.Run2_2016)
 # Event Source and Condition
 
 # Live Online DQM in P5
-process.load("DQM.Integration.config.inputsource_cfi")
-process.load("DQM.Integration.config.FrontierCondition_GT_cfi")
+#process.load("DQM.Integration.config.inputsource_cfi")
+#process.load("DQM.Integration.config.FrontierCondition_GT_cfi")
 # Due to the GT override in the above include, we have trouble with
 # conflicting CaloParams from stage1 and stage2.  This workaround
 # can go away once either the es_prefer is removed from DQM or the
 # new L1TCaloStage2ParamsRcd is integrated into CMSSW.
-if 'es_prefer_GlobalTag' in process.__dict__:
-    process.__dict__.pop('es_prefer_GlobalTag')
-    process._Process__esprefers.pop('es_prefer_GlobalTag')
+#if 'es_prefer_GlobalTag' in process.__dict__:
+#    process.__dict__.pop('es_prefer_GlobalTag')
+#    process._Process__esprefers.pop('es_prefer_GlobalTag')
 
 # Testing in lxplus
-#process.load("DQM.Integration.config.fileinputsource_cfi")
-#process.load("DQM.Integration.config.FrontierCondition_GT_Offline_cfi") 
+process.load("DQM.Integration.config.fileinputsource_cfi")
+process.load("DQM.Integration.config.FrontierCondition_GT_Offline_cfi") 
 
 # Required to load EcalMappingRecord
 process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
+
+# Added by Preston
+process.load('Configuration.StandardSequences.MagneticField_cff')
 
 #--------------------------------------------------
 # DQM Environment
@@ -31,7 +34,7 @@ process.load("DQM.Integration.config.environment_cfi")
 
 process.dqmEnv.subSystemFolder = "L1T2016EMU"
 process.dqmSaver.tag = "L1T2016EMU"
-process.DQMStore.referenceFileName = "/dqmdata/dqm/reference/l1temu_reference.root"
+#process.DQMStore.referenceFileName = "/dqmdata/dqm/reference/l1temu_reference.root"
 
 process.dqmEndPath = cms.EndPath(
     process.dqmEnv *
@@ -64,19 +67,42 @@ process.selfFatEventFilter = cms.EDFilter("HLTL1NumberFilter",
 
 process.load("DQM.L1TMonitor.L1TStage2Emulator_cff")
 
+# Remove Emulator Modules - Added by Preston
+
+process.l1tStage2Unpack.remove(process.l1tCaloLayer1Digis)
+process.l1tStage2Unpack.remove(process.caloStage2Digis)
+process.l1tStage2Unpack.remove(process.bmtfDigis)
+process.l1tStage2Unpack.remove(process.gmtStage2Digis)
+process.l1tStage2Unpack.remove(process.gtStage2Digis)
+
+process.Stage2L1HardwareValidation.remove(process.valCaloStage2Layer1Digis)
+process.Stage2L1HardwareValidation.remove(process.valCaloStage2Layer2Digis)
+process.Stage2L1HardwareValidation.remove(process.valGmtCaloSumDigis)
+process.Stage2L1HardwareValidation.remove(process.valGmtStage2Digis)
+process.Stage2L1HardwareValidation.remove(process.valGtStage2Digis)
+
+process.l1tStage2EmulatorOnlineDQM.remove(process.l1tdeStage2CaloLayer1)
+process.l1tStage2EmulatorOnlineDQM.remove(process.l1tStage2CaloLayer2)
+process.l1tStage2EmulatorOnlineDQM.remove(process.l1tStage2CaloLayer2Emul)
+process.l1tStage2EmulatorOnlineDQM.remove(process.l1tStage2uGMTEmul)
+process.l1tStage2EmulatorOnlineDQM.remove(process.l1tdeStage2uGMT)
+process.l1tStage2EmulatorOnlineDQM.remove(process.l1tStage2uGtEmul)
+
 process.l1tEmulatorMonitorPath = cms.Path(
-    process.hltFatEventFilter +
+#    process.hltFatEventFilter +    Commented out by Preston
 #    process.selfFatEventFilter +
     process.l1tStage2Unpack  +
     process.Stage2L1HardwareValidation +
     process.l1tStage2EmulatorOnlineDQM 
     )
 
+
 # To get L1 conditions that are not in GlobalTag / O2O yet
-process.load("L1Trigger.L1TCalorimeter.hackConditions_cff")
+#process.load("L1Trigger.L1TCalorimeter.hackConditions_cff")
 process.load("L1Trigger.L1TMuon.hackConditions_cff")
-process.gmtParams.caloInputsMasked = cms.bool(True) # Disable uGMT calo inputs like in the online configuration
-process.load("L1Trigger.L1TGlobal.hackConditions_cff")
+from L1Trigger.L1TGlobal.GlobalParameters_cff import *
+#process.gmtParams.caloInputsMasked = cms.bool(True) # Disable uGMT calo inputs like in the online configuration
+#process.load("L1Trigger.L1TGlobal.hackConditions_cff")
 
 # To get CaloTPGTranscoder
 process.load('SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff')
